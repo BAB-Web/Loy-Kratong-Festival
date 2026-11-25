@@ -1,5 +1,5 @@
 // วาง HTTP URL ที่ได้จาก Power Automate ตรงนี้
-const API_URL = 'วาง_HTTP_URL_ของ_POWER_AUTOMATE_ที่นี่';
+const API_URL = 'https://default999faaee4a32462e91c8b5917850e9.7d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/7f79f48593ff46f1b1da42561d6ae705/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=hwxhJ1JR91RsDwz3GQMBx-_gF3ZdEkpQbPYSLT8JSi4';
 
 // รายชื่อไฟล์กระทง PNG ในโฟลเดอร์ assets (เพิ่มหรือแก้ชื่อไฟล์ให้ตรงกับที่มี)
 const KRATHONG_ASSETS = [
