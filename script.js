@@ -1,16 +1,16 @@
-// 1. ระบุรายชื่อไฟล์กระทง PNG ที่มีอยู่ในโฟลเดอร์ assets
+// วาง HTTP URL ที่ได้จาก Power Automate ตรงนี้
+const API_URL = 'วาง_HTTP_URL_ของ_POWER_AUTOMATE_ที่นี่';
+
+// รายชื่อไฟล์กระทง PNG ในโฟลเดอร์ assets (เพิ่มหรือแก้ชื่อไฟล์ให้ตรงกับที่มี)
 const KRATHONG_ASSETS = [
   { id: 'k1', name: 'กระทงใบตอง', src: 'assets/krathong-1.png' },
   { id: 'k2', name: 'กระทงดอกบัว', src: 'assets/krathong-2.png' },
   { id: 'k3', name: 'กระทงขนมปัง', src: 'assets/krathong-3.png' }
-  // เพิ่มแบบอื่นต่อท้ายตรงนี้ได้เลย
 ];
 
-const STORAGE_KEY = 'loy_krathong_data_v1';
-const ADMIN_PIN = 'fiwloveeveryone'; // เปลี่ยนรหัสผ่านแอดมินตรงนี้
-
 let selectedAsset = KRATHONG_ASSETS[0].src;
-let krathongs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let krathongs = [];
+let sessionAdminPin = null;
 
 const waterZone = document.getElementById('waterZone');
 const krathongCount = document.getElementById('krathongCount');
@@ -19,7 +19,15 @@ const krathongPicker = document.getElementById('krathongPicker');
 const adminModalOverlay = document.getElementById('adminModalOverlay');
 const adminList = document.getElementById('adminList');
 
-// สร้างตัวเลือกกระทงใน Modal
+// ฟังก์ชันกลางสำหรับส่งคำสั่งไป Power Automate
+async function callApi(payload) {
+  return await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
 function renderPicker() {
   krathongPicker.innerHTML = '';
   KRATHONG_ASSETS.forEach((item, index) => {
@@ -35,22 +43,18 @@ function renderPicker() {
   });
 }
 
-// ป้องกันอักขระ HTML แปลกปลอมในคำอธิษฐาน
 function escapeHTML(str) {
-  return str.replace(/[&<>"']/g, m => ({
+  return String(str).replace(/[&<>"']/g, m => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[m]));
 }
 
-// วางกระทงลงบนผิวน้ำ พร้อมคำนวณมิติใกล้-ไกล (Perspective)
 function spawnKrathong(data, startImmediately = false) {
   const item = document.createElement('div');
   item.className = 'krathong-item';
   item.dataset.id = data.id;
 
-  // สุ่มระดับความลึกในน้ำ (10% = ใกล้ขอบล่าง, 75% = ไกลออกไป)
   const depthPercent = Math.floor(Math.random() * 65) + 10;
-  // กระทงที่อยู่ไกลให้ขนาดเล็กลงและลอยช้าลง
   const scale = (1.05 - (depthPercent / 100) * 0.45).toFixed(2);
   const duration = Math.floor(24 + (depthPercent / 100) * 22);
   const delay = startImmediately ? -2 : -(Math.random() * duration).toFixed(1);
@@ -73,53 +77,76 @@ function spawnKrathong(data, startImmediately = false) {
   waterZone.appendChild(item);
 }
 
-// โหลดกระทงทั้งหมดที่มีอยู่
-function init() {
-  renderPicker();
-  krathongCount.textContent = krathongs.length;
-  krathongs.forEach(k => spawnKrathong(k, false));
+// โหลดกระทงทั้งหมดจาก SharePoint
+async function loadKrathongs() {
+  try {
+    const res = await callApi({ action: 'get' });
+    if (!res.ok) throw new Error('โหลดข้อมูลไม่สำเร็จ');
+    krathongs = await res.json();
+    waterZone.innerHTML = '';
+    krathongCount.textContent = krathongs.length;
+    krathongs.forEach(k => spawnKrathong(k, false));
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// Event เปิด-ปิด Modal สร้างกระทง
+// เปิด-ปิด Modal สร้างกระทง
 document.getElementById('openModalBtn').onclick = () => modalOverlay.classList.remove('hidden');
 document.getElementById('closeModalBtn').onclick = () => modalOverlay.classList.add('hidden');
 
-// บันทึกและปล่อยกระทงใหม่
-document.getElementById('submitKrathongBtn').onclick = () => {
+// ส่งกระทงใหม่ไปบันทึกที่ SharePoint
+document.getElementById('submitKrathongBtn').onclick = async () => {
+  const btn = document.getElementById('submitKrathongBtn');
   const nameInput = document.getElementById('userName');
   const wishInput = document.getElementById('userWish');
   const name = nameInput.value.trim() || 'ผู้ไม่ประสงค์ออกนาม';
   const wish = wishInput.value.trim() || 'ขอให้มีความสุขตลอดปี';
 
-  const newKrathong = {
-    id: Date.now(),
-    name,
-    wish,
-    img: selectedAsset
-  };
+  btn.disabled = true;
+  btn.textContent = 'กำลังปล่อยกระทง...';
 
-  krathongs.push(newKrathong);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(krathongs));
+  try {
+    const res = await callApi({
+      action: 'create',
+      name,
+      wish,
+      img: selectedAsset
+    });
+    if (!res.ok) throw new Error('บันทึกไม่สำเร็จ');
 
-  spawnKrathong(newKrathong, true);
-  krathongCount.textContent = krathongs.length;
+    const newKrathong = await res.json();
+    krathongs.push(newKrathong);
+    spawnKrathong(newKrathong, true);
+    krathongCount.textContent = krathongs.length;
 
-  nameInput.value = '';
-  wishInput.value = '';
-  modalOverlay.classList.add('hidden');
+    nameInput.value = '';
+    wishInput.value = '';
+    modalOverlay.classList.add('hidden');
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการส่งกระทง กรุณาลองใหม่');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ปล่อยกระทงลงน้ำ';
+  }
 };
 
 // ================= ระบบแอดมิน =================
+document.getElementById('adminBtn').onclick = async () => {
+  const pin = prompt('กรุณากรอกรหัสผ่านแอดมิน:');
+  if (pin === null || pin.trim() === '') return;
 
-// เปิดหน้าต่างแอดมิน (ถามรหัส PIN)
-document.getElementById('adminBtn').onclick = () => {
-  const pin = prompt('กรุณากรอกรหัส PIN แอดมิน:');
-  if (pin === null) return; // กดยกเลิก
-  if (pin === ADMIN_PIN) {
-    renderAdminList();
-    adminModalOverlay.classList.remove('hidden');
-  } else {
-    alert('รหัส PIN ไม่ถูกต้อง');
+  try {
+    const res = await callApi({ action: 'verify', pin });
+    if (res.ok) {
+      sessionAdminPin = pin;
+      renderAdminList();
+      adminModalOverlay.classList.remove('hidden');
+    } else {
+      alert('รหัสผ่านไม่ถูกต้อง');
+    }
+  } catch (err) {
+    alert('ไม่สามารถเชื่อมต่อระบบตรวจสอบได้');
   }
 };
 
@@ -127,7 +154,6 @@ document.getElementById('closeAdminBtn').onclick = () => {
   adminModalOverlay.classList.add('hidden');
 };
 
-// แสดงรายการกระทงในหน้าต่างแอดมิน
 function renderAdminList() {
   if (krathongs.length === 0) {
     adminList.innerHTML = '<p style="text-align:center; opacity:0.7; padding:20px;">ยังไม่มีกระทงในระบบ</p>';
@@ -135,7 +161,6 @@ function renderAdminList() {
   }
 
   adminList.innerHTML = '';
-  // เรียงจากกระทงล่าสุดขึ้นก่อน
   [...krathongs].reverse().forEach(k => {
     const row = document.createElement('div');
     row.className = 'admin-item';
@@ -153,34 +178,104 @@ function renderAdminList() {
   });
 }
 
-// ลบกระทงทีละใบ
-function deleteKrathong(id) {
+async function deleteKrathong(id) {
   if (!confirm('ต้องการลบกระทงใบนี้ใช่หรือไม่?')) return;
 
-  // 1. ลบออกจากข้อมูลและ localStorage
-  krathongs = krathongs.filter(k => k.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(krathongs));
+  try {
+    const res = await callApi({ action: 'delete', id, pin: sessionAdminPin });
+    if (!res.ok) {
+      alert('ไม่มีสิทธิ์ลบหรือรหัสผ่านไม่ถูกต้อง');
+      return;
+    }
 
-  // 2. ลบตัวกระทงที่กำลังลอยอยู่บนหน้าจอออกทันที
-  const el = waterZone.querySelector(`.krathong-item[data-id="${id}"]`);
-  if (el) el.remove();
+    krathongs = krathongs.filter(k => k.id !== id);
+    const el = waterZone.querySelector(`.krathong-item[data-id="${id}"]`);
+    if (el) el.remove();
 
-  // 3. อัปเดตตัวเลขและรายการแอดมิน
-  krathongCount.textContent = krathongs.length;
-  renderAdminList();
+    krathongCount.textContent = krathongs.length;
+    renderAdminList();
+  } catch (err) {
+    alert('ลบไม่สำเร็จ กรุณาลองใหม่');
+  }
 }
 
-// ลบกระทงทั้งหมด
-document.getElementById('clearAllBtn').onclick = () => {
+document.getElementById('clearAllBtn').onclick = async () => {
   if (krathongs.length === 0) return;
   if (!confirm('ยืนยันการลบกระทงทั้งหมดหรือไม่?')) return;
 
-  krathongs = [];
-  localStorage.removeItem(STORAGE_KEY);
-  waterZone.innerHTML = '';
-  krathongCount.textContent = 0;
-  renderAdminList();
+  try {
+    const res = await callApi({ action: 'clear', pin: sessionAdminPin });
+    if (!res.ok) {
+      alert('ไม่มีสิทธิ์ลบหรือยังไม่ได้สร้าง Case clear ใน Power Automate');
+      return;
+    }
+    krathongs = [];
+    waterZone.innerHTML = '';
+    krathongCount.textContent = 0;
+    renderAdminList();
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
+  }
 };
 
+// ================= ระบบเพลงดนตรีไทย =================
+const bgMusic = document.getElementById('bgMusic');
+const musicBtn = document.getElementById('musicBtn');
+if (bgMusic && musicBtn) {
+  bgMusic.volume = 0.4;
+  let isMusicPlaying = false;
+  let userManuallyPaused = false;
+
+  const updateMusicUI = (playing) => {
+    isMusicPlaying = playing;
+    musicBtn.textContent = playing ? '🔊 ปิดเพลง' : '🔇 เปิดเพลง';
+    musicBtn.classList.toggle('playing', playing);
+  };
+
+  musicBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (isMusicPlaying) {
+      bgMusic.pause();
+      userManuallyPaused = true;
+      updateMusicUI(false);
+    } else {
+      bgMusic.play().then(() => {
+        userManuallyPaused = false;
+        updateMusicUI(true);
+      }).catch(() => alert('ไม่พบไฟล์ assets/music.mp3'));
+    }
+  };
+
+  document.addEventListener('click', () => {
+    if (!isMusicPlaying && !userManuallyPaused) {
+      bgMusic.play().then(() => updateMusicUI(true)).catch(() => {});
+    }
+  }, { once: true });
+}
+
+// เช็กกระทงใหม่จากคนอื่นอัตโนมัติทุกๆ 20 วินาที
+setInterval(async () => {
+  try {
+    const res = await callApi({ action: 'get' });
+    if (!res.ok) return;
+    const latestData = await res.json();
+
+    const currentIds = new Set(krathongs.map(k => k.id));
+    const newItems = latestData.filter(k => !currentIds.has(k.id));
+
+    newItems.forEach(k => {
+      krathongs.push(k);
+      spawnKrathong(k, true);
+    });
+
+    if (newItems.length > 0) {
+      krathongCount.textContent = krathongs.length;
+    }
+  } catch (err) {
+    // ข้ามไปถ้าเน็ตสะดุด
+  }
+}, 20000);
+
 // เริ่มทำงาน
-init();
+renderPicker();
+loadKrathongs();
