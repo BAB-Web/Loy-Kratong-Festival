@@ -23,8 +23,8 @@ body, html {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background-image: url('assets/bg.jpg');
-  background-size: 100% 100%;
+  background-image: url('assets/bg.jpg'); /* เปลี่ยนชื่อไฟล์ให้ตรงกับฉากหลัง */
+  background-size: 100% 100%;            /* ถ้าอยากให้ไม่ยืดบนมือถือ เปลี่ยนเป็น cover แล้วใส่ background-position: center center; */
   background-repeat: no-repeat;
   overflow: hidden;
 }
@@ -46,6 +46,12 @@ body, html {
   color: var(--gold-light);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .stats {
   background: rgba(0, 25, 65, 0.75);
   border: 1px solid var(--gold);
@@ -54,13 +60,35 @@ body, html {
   font-size: 0.9rem;
 }
 
+.btn-admin {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(201, 164, 97, 0.6);
+  color: var(--gold-light);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-admin:hover {
+  background: rgba(201, 164, 97, 0.25);
+}
+
+.btn-admin.playing {
+  background: rgba(201, 164, 97, 0.35);
+  border-color: var(--gold-light);
+  color: var(--white);
+  box-shadow: 0 0 10px rgba(201, 164, 97, 0.45);
+}
+
 /* โซนผิวน้ำ: ปรับ height ให้พอดีกับระดับผิวน้ำในรูปฉากหลัง */
 .water-zone {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 42%; 
+  height: 42%;
   pointer-events: none;
   z-index: 10;
 }
@@ -118,7 +146,6 @@ body, html {
   font-size: 0.82rem;
 }
 
-/* แอนิเมชันลอยผ่านหน้าจอ + โยกตามคลื่น */
 @keyframes drift {
   from { transform: translateX(0); }
   to   { transform: translateX(calc(100vw + 220px)); }
@@ -255,27 +282,6 @@ body, html {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-}
-/* ปุ่มและแถบด้านขวาบน */
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn-admin {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(201, 164, 97, 0.6);
-  color: var(--gold-light);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-admin:hover {
-  background: rgba(201, 164, 97, 0.25);
 }
 
 /* หน้าต่างรายการแอดมิน */
