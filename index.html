@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ลอยกระทงออนไลน์</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ฉากหลังและโซนผิวน้ำ -->
+  <div class="scene">
+   <div class="header-bar">
+      <h1>🌕 ลอยกระทงออนไลน์</h1>
+      <div class="header-right">
+        <div class="stats">กระทงที่ลอยแล้ว: <span id="krathongCount">0</span> ใบ</div>
+        <button id="adminBtn" class="btn-admin" title="ระบบแอดมิน">🔒 แอดมิน</button>
+      </div>
+    </div>
+
+    <!-- พื้นที่สำหรับกระทงลอย (ปรับความสูงใน CSS ให้ตรงกับผิวน้ำในรูปฉากหลัง) -->
+    <div id="waterZone" class="water-zone"></div>
+
+    <!-- ปุ่มเปิดหน้าต่างสร้างกระทง -->
+    <button id="openModalBtn" class="btn-float-main">✨ ร่วมลอยกระทง</button>
+  </div>
+
+  <!-- หน้าต่างเลือกกระทงและเขียนคำอธิษฐาน -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="closeModalBtn" class="btn-close">&times;</button>
+      <h2>เลือกกระทงและอธิษฐาน</h2>
+
+      <div class="form-group">
+        <label>เลือกแบบกระทง</label>
+        <div id="krathongPicker" class="krathong-picker"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="userName">ชื่อของคุณ</label>
+        <input type="text" id="userName" maxlength="30" placeholder="เช่น สมชาย" />
+      </div>
+<!-- หน้าต่างระบบแอดมิน -->
+  <div id="adminModalOverlay" class="modal-overlay hidden">
+    <div class="modal-card admin-card">
+      <button id="closeAdminBtn" class="btn-close">&times;</button>
+      <h2>🔒 จัดการกระทง (แอดมิน)</h2>
+      
+      <div id="adminList" class="admin-list"></div>
+
+      <button id="clearAllBtn" class="btn-clear-all">🗑️ ลบกระทงทั้งหมด</button>
+    </div>
+  </div>
+      <div class="form-group">
+        <label for="userWish">คำอธิษฐาน</label>
+        <textarea id="userWish" rows="3" maxlength="120" placeholder="ขอให้มีแต่ความสุข สุขภาพแข็งแรง..."></textarea>
+      </div>
+
+      <button id="submitKrathongBtn" class="btn-submit">ปล่อยกระทงลงน้ำ</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
